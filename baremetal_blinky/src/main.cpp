@@ -5,6 +5,8 @@
 
 // ----------------------------------------------------------------------------
 
+#include "cmsis_device.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,27 +39,23 @@
 // Definitions visible only within this translation unit.
 namespace
 {
-  // ----- Timing definitions -------------------------------------------------
+   // ----- Timing definitions -------------------------------------------------
 
-  // Keep the LED on for 2/3 of a second.
-  constexpr Timer::ticks_t BLINK_ON_TICKS = Timer::FREQUENCY_HZ * 3 / 4;
-  constexpr Timer::ticks_t BLINK_OFF_TICKS = Timer::FREQUENCY_HZ
-      - BLINK_ON_TICKS;
+   // Keep the LED on for 2/3 of a second.
+   constexpr Timer::ticks_t BLINK_ON_TICKS = Timer::FREQUENCY_HZ * 3 / 4;
+   constexpr Timer::ticks_t BLINK_OFF_TICKS = Timer::FREQUENCY_HZ - BLINK_ON_TICKS;
 }
 
 // ----- LED definitions ------------------------------------------------------
 
 // Olimex STM32-H405
 // Port C (2) (A-0, B-1, C-2, D-3)
-#define BLINK_PORT_NUMBER         (2)
+#define BLINK_PORT_NUMBER  (2)
 // Pin PC12 (12) - overall pin 53
-#define BLINK_PIN_NUMBER          (12)
-#define BLINK_ACTIVE_LOW          (false)
+#define BLINK_PIN_NUMBER   (12)
+#define BLINK_ACTIVE_LOW   (false)
 
-BlinkLed blinkLeds[1] =
-  {
-    { BLINK_PORT_NUMBER, BLINK_PIN_NUMBER, BLINK_ACTIVE_LOW },
-  };
+BlinkLed blinkLeds = {BLINK_PORT_NUMBER, BLINK_PIN_NUMBER, BLINK_ACTIVE_LOW};
 
 // ----- main() ---------------------------------------------------------------
 
@@ -71,122 +69,60 @@ BlinkLed blinkLeds[1] =
 int
 main(int argc, char* argv[])
 {
-  // Show the program parameters (passed via semihosting).
-  // Output is via the semihosting output channel.
-  //trace_dump_args(argc, argv);
+   // Show the program parameters (passed via semihosting).
+   // Output is via the semihosting output channel.
+   //trace_dump_args(argc, argv);
 
-  // Send a greeting to the trace device (skipped on Release).
-  //trace_puts("Hello ARM World!");
+   // Send a greeting to the trace device (skipped on Release).
+   //trace_puts("Hello ARM World!");
 
-  // Send a message to the standard output.
-  puts("Standard output message.");
+   // Send a message to the standard output.
+   puts("Standard output message.");
 
-  // Send a message to the standard error.
-  fprintf(stderr, "Standard error message.\n");
+   // Send a message to the standard error.
+   fprintf(stderr, "Standard error message.\n");
 
-  // At this stage the system clock should have already been configured
-  // at high speed.
-  //trace_printf("System clock: %u Hz\n", SystemCoreClock);
+   // At this stage the system clock should have already been configured
+   // at high speed.
+   //trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-  Timer timer;
-  timer.start ();
+   Timer timer;
+   timer.start();
 
-  // Perform all necessary initialisations for the LEDs.
-  for (size_t i = 0; i < (sizeof(blinkLeds) / sizeof(blinkLeds[0])); ++i)
-    {
-      blinkLeds[i].powerUp ();
-    }
+   // Perform all necessary initialisations for the LEDs.
+   blinkLeds.powerUp();
 
-  uint32_t seconds = 0;
+   uint32_t seconds = 0;
 
-#define LOOP_COUNT (1 << (sizeof(blinkLeds) / sizeof(blinkLeds[0])))
+   blinkLeds.turnOn();
 
-  int loops = LOOP_COUNT > 2 ? LOOP_COUNT : (5);
-  if (argc > 1)
-    {
-      // If defined, get the number of loops from the command line,
-      // configurable via semihosting.
-      loops = atoi (argv[1]);
-      if (loops < LOOP_COUNT)
-        {
-          loops = LOOP_COUNT;
-        }
-    }
+   // First second is long.
+   timer.sleep(Timer::FREQUENCY_HZ);
 
-  for (size_t i = 0; i < (sizeof(blinkLeds) / sizeof(blinkLeds[0])); ++i)
-    {
-      blinkLeds[i].turnOn ();
-    }
+   blinkLeds.turnOff();
 
-  // First second is long.
-  timer.sleep (Timer::FREQUENCY_HZ);
+   timer.sleep(BLINK_OFF_TICKS);
 
-  for (size_t i = 0; i < (sizeof(blinkLeds) / sizeof(blinkLeds[0])); ++i)
-    {
-      blinkLeds[i].turnOff ();
-    }
+   ++seconds;
+   //trace_printf ("Second %u\n", seconds);
 
-  timer.sleep (BLINK_OFF_TICKS);
+   for (int i = 0; i < 5; i++)
+   {
+      blinkLeds.turnOn ();
+      timer.sleep(BLINK_ON_TICKS);
 
-  ++seconds;
-  //trace_printf ("Second %u\n", seconds);
+      blinkLeds.turnOff ();
+      timer.sleep(BLINK_OFF_TICKS);
 
-  if ((sizeof(blinkLeds) / sizeof(blinkLeds[0])) > 1)
-    {
-      // Blink individual LEDs.
-      for (size_t i = 0; i < (sizeof(blinkLeds) / sizeof(blinkLeds[0])); ++i)
-        {
-          blinkLeds[i].turnOn ();
-          timer.sleep (BLINK_ON_TICKS);
+      ++seconds;
+      //trace_printf ("Second %u\n", seconds);
+   }
 
-          blinkLeds[i].turnOff ();
-          timer.sleep (BLINK_OFF_TICKS);
+   blinkLeds.turnOn();
 
-          ++seconds;
-          //trace_printf ("Second %u\n", seconds);
-        }
+   timer.sleep(Timer::FREQUENCY_HZ);
 
-      // Blink binary.
-      for (int i = 0; i < loops; i++)
-        {
-          for (size_t l = 0; l < (sizeof(blinkLeds) / sizeof(blinkLeds[0]));
-              ++l)
-            {
-              blinkLeds[l].toggle ();
-              if (blinkLeds[l].isOn ())
-                {
-                  break;
-                }
-            }
-          timer.sleep (Timer::FREQUENCY_HZ);
-
-          ++seconds;
-          //trace_printf ("Second %u\n", seconds);
-        }
-    }
-  else
-    {
-      for (int i = 0; i < loops; i++)
-        {
-          blinkLeds[0].turnOn ();
-          timer.sleep (BLINK_ON_TICKS);
-
-          blinkLeds[0].turnOff ();
-          timer.sleep (BLINK_OFF_TICKS);
-
-          ++seconds;
-          //trace_printf ("Second %u\n", seconds);
-        }
-    }
-
-  for (size_t i = 0; i < (sizeof(blinkLeds) / sizeof(blinkLeds[0])); ++i)
-    {
-      blinkLeds[i].turnOn ();
-    }
-
-  timer.sleep (Timer::FREQUENCY_HZ);
-
-  return 0;
+   return 0;
 }
 
 //#pragma GCC diagnostic pop
