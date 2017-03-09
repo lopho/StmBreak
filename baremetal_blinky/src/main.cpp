@@ -39,11 +39,11 @@
 // Definitions visible only within this translation unit.
 namespace
 {
-   // ----- Timing definitions -------------------------------------------------
+// ----- Timing definitions -------------------------------------------------
 
-   // Keep the LED on for 2/3 of a second.
-   constexpr Timer::ticks_t BLINK_ON_TICKS = Timer::FREQUENCY_HZ * 3 / 4;
-   constexpr Timer::ticks_t BLINK_OFF_TICKS = Timer::FREQUENCY_HZ - BLINK_ON_TICKS;
+// Keep the LED on for 2/3 of a second.
+constexpr Timer::ticks_t BLINK_ON_TICKS = Timer::FREQUENCY_HZ * 3 / 4;
+constexpr Timer::ticks_t BLINK_OFF_TICKS = Timer::FREQUENCY_HZ - BLINK_ON_TICKS;
 }
 
 // ----- LED definitions ------------------------------------------------------
@@ -55,7 +55,8 @@ namespace
 #define BLINK_PIN_NUMBER   (12)
 #define BLINK_ACTIVE_LOW   (false)
 
-BlinkLed blinkLeds = {BLINK_PORT_NUMBER, BLINK_PIN_NUMBER, BLINK_ACTIVE_LOW};
+BlinkLed blinkLeds =
+    { BLINK_PORT_NUMBER, BLINK_PIN_NUMBER, BLINK_ACTIVE_LOW };
 
 // ----- main() ---------------------------------------------------------------
 
@@ -69,60 +70,60 @@ BlinkLed blinkLeds = {BLINK_PORT_NUMBER, BLINK_PIN_NUMBER, BLINK_ACTIVE_LOW};
 int
 main(int argc, char* argv[])
 {
-   // Show the program parameters (passed via semihosting).
-   // Output is via the semihosting output channel.
-   //trace_dump_args(argc, argv);
+    // Show the program parameters (passed via semihosting).
+    // Output is via the semihosting output channel.
+    //trace_dump_args(argc, argv);
 
-   // Send a greeting to the trace device (skipped on Release).
-   //trace_puts("Hello ARM World!");
+    // Send a greeting to the trace device (skipped on Release).
+    //trace_puts("Hello ARM World!");
 
-   // Send a message to the standard output.
-   puts("Standard output message.");
+    // Send a message to the standard output.
+    puts("Standard output message.");
 
-   // Send a message to the standard error.
-   fprintf(stderr, "Standard error message.\n");
+    // Send a message to the standard error.
+    fprintf(stderr, "Standard error message.\n");
 
-   // At this stage the system clock should have already been configured
-   // at high speed.
-   //trace_printf("System clock: %u Hz\n", SystemCoreClock);
+    // At this stage the system clock should have already been configured
+    // at high speed.
+    //trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-   Timer timer;
-   timer.start();
+    Timer timer;
+    timer.start();
 
-   // Perform all necessary initialisations for the LEDs.
-   blinkLeds.powerUp();
+    // Perform all necessary initialisations for the LEDs.
+    blinkLeds.powerUp();
 
-   uint32_t seconds = 0;
+    uint32_t seconds = 0;
 
-   blinkLeds.turnOn();
+    blinkLeds.turnOn();
 
-   // First second is long.
-   timer.sleep(Timer::FREQUENCY_HZ);
+    // First second is long.
+    timer.sleep(Timer::FREQUENCY_HZ);
 
-   blinkLeds.turnOff();
+    blinkLeds.turnOff();
 
-   timer.sleep(BLINK_OFF_TICKS);
+    timer.sleep(BLINK_OFF_TICKS);
 
-   ++seconds;
-   //trace_printf ("Second %u\n", seconds);
+    ++seconds;
+    //trace_printf ("Second %u\n", seconds);
 
-   for (int i = 0; i < 5; i++)
-   {
-      blinkLeds.turnOn ();
-      timer.sleep(BLINK_ON_TICKS);
+    for (int i = 0; i < 5; i++)
+    {
+        blinkLeds.turnOn();
+        timer.sleep(BLINK_ON_TICKS);
 
-      blinkLeds.turnOff ();
-      timer.sleep(BLINK_OFF_TICKS);
+        blinkLeds.turnOff();
+        timer.sleep(BLINK_OFF_TICKS);
 
-      ++seconds;
-      //trace_printf ("Second %u\n", seconds);
-   }
+        ++seconds;
+        //trace_printf ("Second %u\n", seconds);
+    }
 
-   blinkLeds.turnOn();
+    blinkLeds.turnOn();
 
-   timer.sleep(Timer::FREQUENCY_HZ);
+    timer.sleep(Timer::FREQUENCY_HZ);
 
-   return 0;
+    return 0;
 }
 
 //#pragma GCC diagnostic pop
