@@ -29,7 +29,7 @@ Timer::sleep(ticks_t ticks)
 }
 
 // ----- SysTick_Handler() ----------------------------------------------------
-
+/*
 extern "C" void
 SysTick_Handler(void)
 {
@@ -38,5 +38,5 @@ SysTick_Handler(void)
 #endif
   Timer::tick();
 }
-
+*/
 // ----------------------------------------------------------------------------

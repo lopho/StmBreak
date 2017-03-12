@@ -35,7 +35,7 @@ BlinkLed::powerUp ()
   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
   GPIO_InitStructure.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init (BLINK_GPIOx(fPortNumber), &GPIO_InitStructure);
+  HAL_GPIO_Init (GPIOC_BASE, &GPIO_InitStructure);
 
   // Start with led turned off
   turnOff ();
