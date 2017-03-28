@@ -57,9 +57,9 @@ static void ledTask(void* pvParameters)
         sLED_PORT->BSRR = sLED_PIN_LOW;
         x += 1;
         printf("%s: x = %i\n", p->name, (int)x);
-        vTaskDelay(p->interval);
+        vTaskDelay((p->interval+0.5f)/2);
         sLED_PORT->BSRR = sLED_PIN_HIGH;
-        vTaskDelay(p->interval);
+        vTaskDelay((p->interval+0.5f)/2);
     }
 }
 
@@ -85,8 +85,45 @@ static void setPwm()
 
 }
 
+static void initLed()
+{
+    HAL_GPIO_DeInit(sLED_PORT, sLED_PIN_LOW);
+
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+
+    GPIO_InitTypeDef GPIO_ledInitStructure;
+
+    // Configure pin in output push/pull mode
+    GPIO_ledInitStructure.Pin = sLED_PIN_LOW;
+    GPIO_ledInitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_ledInitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_ledInitStructure.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(sLED_PORT, &GPIO_ledInitStructure);
+
+    sLED_PORT->BSRR = sLED_PIN_LOW;
+    vTaskDelay(100);
+    sLED_PORT->BSRR = sLED_PIN_HIGH;
+    vTaskDelay(100);
+
+    printf("Starting led task\n");
+
+    struct ledTaskParam* p;
+
+    p = (ledTaskParam*)malloc(sizeof(struct ledTaskParam));
+    p->name     = (char*)malloc(16);
+    p->interval = 1;
+    sprintf(p->name, "led_task");
+
+    xTaskCreate(ledTask, p->name, 1024, p, tskIDLE_PRIORITY, NULL);
+}
+
 static void initAdc(ADC_HandleTypeDef& o_adcHandle)
 {
+    HAL_GPIO_DeInit(sADC_PORT, sADC_PIN);
+
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_ADC1_CLK_ENABLE();
+
      GPIO_InitTypeDef GPIO_adcInitStructure;
      GPIO_adcInitStructure.Pin = sADC_PIN;
      GPIO_adcInitStructure.Mode = GPIO_MODE_ANALOG;
@@ -128,46 +165,160 @@ static void initAdc(ADC_HandleTypeDef& o_adcHandle)
 
      p = (adcTaskParam*)malloc(sizeof(struct adcTaskParam));
      p->name     = (char*)malloc(16);
-     p->interval = 4;
+     p->interval = 1;
      sprintf(p->name, "ADC_TASK");
      p->handle = o_adcHandle;
 
      xTaskCreate(adcTask, p->name, 1024, p, tskIDLE_PRIORITY, NULL);
+}
 
+static void initPwm(TIM_HandleTypeDef& o_pwmHandle)
+{
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    //__TIM2_CLK_ENABLE();
+//    o_pwmHandle.Instance = TIM1;
+//    o_pwmHandle.Init.Prescaler = 40000;
+//    o_pwmHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+//    o_pwmHandle.Init.Period = 500;
+//    o_pwmHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+//    o_pwmHandle.Init.RepetitionCounter = 0;
+//    HAL_TIM_Base_Init(&o_pwmHandle);
+//    HAL_TIM_Base_Start(&o_pwmHandle);
+//
+//
+//    o_pwmHandle.Channel
+//    TIM_OC_InitTypeDef outputChannelInit = {0,};
+//    outputChannelInit.OCMode = TIM_OCMODE_PWM1;
+//    outputChannelInit.Pulse = 400;
+//    //outputChannelInit.OutputState = TIM_OutputState_Enable;
+//    outputChannelInit.OCFastMode = TIM_OCFAST_ENABLE;
+//    outputChannelInit.OCPolarity = TIM_OCPOLARITY_HIGH;
+//
+//    TIM_OC1Init(TIM1, &outputChannelInit);
+//    TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
+//
+//    GPIO_PinAFConfig(GPIOD, GPIO_PinSource12, GPIO_AF1_TIM1);
+//    //GPIO_AF1_TIM1
+
+//    TIM_OC_InitTypeDef sConfigOC;
+//
+//    o_pwmHandle.Instance = TIM1;
+//    o_pwmHandle.Init.Prescaler = 6;
+//    o_pwmHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+//    o_pwmHandle.Init.Period = 1300;
+//    o_pwmHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+//    HAL_TIM_PWM_Init(&o_pwmHandle);
+//
+//    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+//    sConfigOC.OCIdleState = TIM_OCIDLESTATE_SET;
+//    sConfigOC.Pulse = 650;
+//    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+//    sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+//    HAL_TIM_PWM_ConfigChannel(&o_pwmHandle, &sConfigOC, TIM_CHANNEL_1);
+//
+//    GPIO_InitTypeDef GPIO_InitStruct;
+//    GPIO_InitStruct.Pin = GPIO_PIN_8;
+//    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+//    GPIO_InitStruct.Pull = GPIO_NOPULL;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
+//    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+//
+//    //HAL_TIM_Base_Start(&o_pwmHandle);
+//    HAL_TIM_PWM_Start(&o_pwmHandle, TIM_CHANNEL_1);
+
+    TIM_ClockConfigTypeDef sClockSourceConfig;
+    TIM_MasterConfigTypeDef sMasterConfig;
+    TIM_OC_InitTypeDef sConfigOC;
+    TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+
+    o_pwmHandle.Instance = TIM1;
+    o_pwmHandle.Init.Prescaler = 8;
+    o_pwmHandle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    o_pwmHandle.Init.Period = 1000;
+    o_pwmHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    o_pwmHandle.Init.RepetitionCounter = 0;
+    if (HAL_TIM_Base_Init(&o_pwmHandle) != HAL_OK)
+    {
+      //Error_Handler();
+    }
+
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&o_pwmHandle, &sClockSourceConfig) != HAL_OK)
+    {
+      //Error_Handler();
+    }
+
+    if (HAL_TIM_PWM_Init(&o_pwmHandle) != HAL_OK)
+    {
+      //Error_Handler();
+    }
+
+  //  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  //  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  //  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  //  {
+  //    Error_Handler();
+  //  }
+
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 500;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+    if (HAL_TIM_PWM_ConfigChannel(&o_pwmHandle, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+    {
+      //Error_Handler();
+    }
+
+  //  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  //  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  //  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  //  sBreakDeadTimeConfig.DeadTime = 0;
+  //  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  //  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  //  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  //  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  //  {
+  //    Error_Handler();
+  //  }
+
+    GPIO_InitTypeDef GPIO_InitStruct;
+    if(o_pwmHandle.Instance==TIM1)
+    {
+    /* USER CODE BEGIN TIM1_MspPostInit 0 */
+
+    /* USER CODE END TIM1_MspPostInit 0 */
+
+      /**TIM1 GPIO Configuration
+      PA9     ------> TIM1_CH2
+      */
+      GPIO_InitStruct.Pin = GPIO_PIN_9;
+      GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+      GPIO_InitStruct.Pull = GPIO_NOPULL;
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+      GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* USER CODE BEGIN TIM1_MspPostInit 1 */
+
+    /* USER CODE END TIM1_MspPostInit 1 */
+    }
+
+    HAL_TIM_PWM_Start(&o_pwmHandle, TIM_CHANNEL_2);
 }
 
 static void initTask(void* /*pvParameters*/)
 {
-    GPIO_InitTypeDef GPIO_ledInitStructure;
+    TIM_HandleTypeDef pwmHandle;
+    initPwm(pwmHandle);
 
-    // Configure pin in output push/pull mode
-    GPIO_ledInitStructure.Pin = sLED_PIN_LOW;
-    GPIO_ledInitStructure.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_ledInitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
-    GPIO_ledInitStructure.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(sLED_PORT, &GPIO_ledInitStructure);
-
-    sLED_PORT->BSRR = sLED_PIN_LOW;
-    vTaskDelay(100);
-    sLED_PORT->BSRR = sLED_PIN_HIGH;
-    vTaskDelay(100);
-
-    for (int i=0; i<5; i++) {
-
-        printf("Starting task %d..\n", i);
-
-        struct ledTaskParam *p;
-
-        p = (ledTaskParam*)malloc(sizeof(struct ledTaskParam));
-        p->name     = (char*)malloc(16);
-        p->interval = (i+1) * (6-i);
-        sprintf(p->name, "task_%d", i);
-
-        xTaskCreate(ledTask, p->name, 1024, p, tskIDLE_PRIORITY, NULL);
-    }
-
-    ADC_HandleTypeDef adcHandle;
-    initAdc(adcHandle);
+//    initLed();
+//
+//    ADC_HandleTypeDef adcHandle;
+//    initAdc(adcHandle);
 
     while(1);
 }
@@ -176,19 +327,13 @@ int main(int /*argc*/, char** /*argv*/)
 {
     HAL_Init();
 
-    HAL_GPIO_DeInit(sLED_PORT, sLED_PIN_LOW);
-    HAL_GPIO_DeInit(sADC_PORT, sADC_PIN);
-
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_ADC1_CLK_ENABLE();
-
-
     // FreeRTOS assumes 4 preemption- and 0 subpriority-bits
     //
-    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+    //HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
     //HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
     //HAL_NVIC_EnableIRQ(ADC_IRQn);
+
 
     // Create init task and start the scheduler
     //
